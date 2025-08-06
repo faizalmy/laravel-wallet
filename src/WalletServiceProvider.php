@@ -71,6 +71,13 @@ use Bavix\Wallet\Internal\Transform\TransactionDtoTransformer;
 use Bavix\Wallet\Internal\Transform\TransactionDtoTransformerInterface;
 use Bavix\Wallet\Internal\Transform\TransferDtoTransformer;
 use Bavix\Wallet\Internal\Transform\TransferDtoTransformerInterface;
+use Bavix\Wallet\Internal\Asset\AssetConfig;
+use Bavix\Wallet\Internal\Asset\AssetContext;
+use Bavix\Wallet\Internal\Asset\AssetContextInterface;
+use Bavix\Wallet\Internal\Asset\AssetRepositoryFactory;
+use Bavix\Wallet\Internal\Asset\AssetRepositoryFactoryInterface;
+use Bavix\Wallet\Internal\Asset\AssetTypeRegistry;
+use Bavix\Wallet\Internal\Asset\AssetTypeRegistryInterface;
 use Bavix\Wallet\Models\Transaction;
 use Bavix\Wallet\Models\Transfer;
 use Bavix\Wallet\Models\Wallet;
@@ -188,6 +195,7 @@ final class WalletServiceProvider extends ServiceProvider implements DeferrableP
         $this->assemblers($configure['assemblers'] ?? []);
         $this->events($configure['events'] ?? []);
 
+        $this->assetManagement($configure['assets'] ?? []);
         $this->bindObjects($configure);
     }
 
@@ -203,6 +211,7 @@ final class WalletServiceProvider extends ServiceProvider implements DeferrableP
             $this->transformersProviders(),
             $this->assemblersProviders(),
             $this->eventsProviders(),
+            $this->assetManagementProviders(),
             $this->bindObjectsProviders(),
         );
     }
@@ -424,6 +433,23 @@ final class WalletServiceProvider extends ServiceProvider implements DeferrableP
     }
 
     /**
+     * @param array<string, array<string, mixed>> $configure
+     */
+    private function assetManagement(array $configure): void
+    {
+        // Register asset management components
+        $this->app->singleton(AssetTypeRegistryInterface::class, AssetTypeRegistry::class);
+        $this->app->singleton(AssetContextInterface::class, AssetContext::class);
+        $this->app->singleton(AssetRepositoryFactoryInterface::class, AssetRepositoryFactory::class);
+
+        // Load asset configurations if provided
+        if (!empty($configure)) {
+            $registry = $this->app->make(AssetTypeRegistryInterface::class);
+            $registry->loadFromConfig($configure);
+        }
+    }
+
+    /**
      * @param array{
      *     transaction?: array{model?: class-string|null},
      *     transfer?: array{model?: class-string|null},
@@ -538,6 +564,18 @@ final class WalletServiceProvider extends ServiceProvider implements DeferrableP
             BalanceUpdatedEventInterface::class,
             WalletCreatedEventInterface::class,
             TransactionCreatedEventInterface::class,
+        ];
+    }
+
+    /**
+     * @return class-string[]
+     */
+    private function assetManagementProviders(): array
+    {
+        return [
+            AssetTypeRegistryInterface::class,
+            AssetContextInterface::class,
+            AssetRepositoryFactoryInterface::class,
         ];
     }
 
