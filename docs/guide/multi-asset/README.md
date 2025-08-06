@@ -2,6 +2,14 @@
 
 The Bavix Laravel Wallet library now supports a **truly agnostic multi-asset system** that allows you to define custom asset types with separate tables for wallets, transactions, and transfers. This system is designed to be completely flexible and extensible, enabling you to create any number of asset types without hardcoding them into the library.
 
+## 🎯 Key Features
+
+- **🔄 Transparent Integration**: Use standard Bavix methods (`deposit`, `withdraw`, `transfer`) without any code changes
+- **🎯 Automatic Asset Detection**: Asset types are detected automatically from wallet models, holder models, or attributes
+- **🔧 Agnostic Design**: Works with any asset type configuration you provide
+- **⚡ Backward Compatible**: All existing functionality is preserved
+- **🛡️ Context Management**: Asset context is properly managed and restored
+
 ## Overview
 
 The multi-asset system consists of several key components:
@@ -10,6 +18,8 @@ The multi-asset system consists of several key components:
 - **AssetTypeRegistry**: Manages multiple asset type configurations
 - **AssetContext**: Provides context-aware operations
 - **AssetRepositoryFactory**: Creates context-aware repositories
+- **AssetTypeDetector**: Automatically detects asset types from various sources
+- **AssetAwareTransactionService**: Transparent asset-aware transaction operations
 
 ## Quick Start
 
@@ -203,9 +213,65 @@ return new class extends Migration
 
 ## Usage
 
-### Context-Aware Operations
+### 🚀 Transparent Usage (Recommended)
 
-The multi-asset system uses context to determine which asset type to operate on:
+The multi-asset system is **completely transparent** - you can use standard Bavix methods without any changes:
+
+```php
+// These work exactly as before, but now automatically use the correct asset tables
+$wallet->deposit(100);                    // Automatically detected asset type
+$wallet->withdraw(50);                    // Automatically detected asset type
+$wallet->transfer($otherWallet, 25);      // Automatically detected asset type
+$wallet->forceWithdraw(75);               // Automatically detected asset type
+$wallet->safeTransfer($otherWallet, 10);  // Automatically detected asset type
+```
+
+### Asset Type Detection
+
+The system automatically detects asset types from multiple sources in this priority order:
+
+1. **Wallet Model**: Table name, class name, or explicit `getAssetType()` method
+2. **Holder Model**: Default asset type methods or class-based detection
+3. **Attributes**: Asset type specified in attributes array
+4. **Default Fallback**: Falls back to default asset type if no detection
+
+#### Detection Examples
+
+```php
+// Detection from table name
+class BondWallet extends \Bavix\Wallet\Models\Wallet
+{
+    protected $table = 'bond_wallets'; // Automatically detected as 'bonds'
+}
+
+// Detection from explicit method
+class ShareWallet extends \Bavix\Wallet\Models\Wallet
+{
+    public function getAssetType(): string
+    {
+        return 'shares';
+    }
+}
+
+// Detection from holder model
+class User extends \Illuminate\Foundation\Auth\User
+{
+    public function getDefaultAssetType(): string
+    {
+        return 'bonds';
+    }
+}
+
+// Detection from attributes
+$wallet = new BondWallet([
+    'asset_type' => 'bonds',
+    'name' => 'My Bond Wallet'
+]);
+```
+
+### Context-Aware Operations (Advanced)
+
+For advanced use cases, you can use context-aware operations:
 
 ```php
 use Bavix\Wallet\Internal\Asset\AssetContextInterface;
@@ -239,6 +305,11 @@ class BondService
         });
     }
 }
+```
+
+### Direct Asset Type Specification
+
+You can also specify the asset type directly without setting context:
 ```
 
 ### Direct Asset Type Specification
@@ -297,6 +368,37 @@ class AssetManager
 ```
 
 ## Advanced Features
+
+### Debugging Asset Type Detection
+
+You can debug asset type detection to understand how the system works:
+
+```php
+use Bavix\Wallet\Internal\Asset\AssetTypeDetector;
+
+class AssetDebugger
+{
+    public function __construct(
+        private AssetTypeDetector $detector
+    ) {}
+
+    public function debugDetection($wallet, $holder = null, $attributes = [])
+    {
+        $debugInfo = $this->detector->getDetectionDebugInfo($wallet, $holder, $attributes);
+
+        return [
+            'detected_asset_type' => $debugInfo['final_detected_asset_type'],
+            'detection_strategies' => $debugInfo['strategies'],
+            'available_asset_types' => $debugInfo['available_asset_types']
+        ];
+    }
+}
+
+// Usage
+$debugger = app(AssetDebugger::class);
+$result = $debugger->debugDetection($bondWallet, $user);
+dd($result);
+```
 
 ### Dynamic Asset Type Registration
 
@@ -368,7 +470,21 @@ The system automatically sets up a default asset type using the standard Bavix w
 
 ## Best Practices
 
-### 1. Consistent Naming
+### 1. Transparent Usage (Recommended)
+
+Use standard Bavix methods for the best experience:
+
+```php
+// ✅ Recommended - Transparent and simple
+$bondWallet->deposit(100);
+$shareWallet->withdraw(50);
+$bondWallet->transfer($shareWallet, 25);
+
+// ❌ Not needed - The system handles this automatically
+$bondWallet->depositWithAssetType(100, 'bonds');
+```
+
+### 2. Consistent Naming
 
 Use consistent naming patterns for your asset types:
 
@@ -384,22 +500,26 @@ Use consistent naming patterns for your asset types:
 'InventoryItems' => [...],
 ```
 
-### 2. Model Inheritance
+### 3. Model Inheritance
 
-Extend the base Bavix models to maintain compatibility:
+Extend the base Bavix models to maintain compatibility and enable automatic detection:
 
 ```php
 class BondWallet extends \Bavix\Wallet\Models\Wallet
 {
-    protected $table = 'bond_wallets';
+    protected $table = 'bond_wallets'; // Automatically detected as 'bonds'
 
     // Add bond-specific methods
+    public function getBondType()
+    {
+        return $this->meta['bond_type'] ?? null;
+    }
 }
 ```
 
-### 3. Context Management
+### 4. Context Management (Advanced)
 
-Use the context system for related operations:
+Use the context system for advanced scenarios where you need explicit control:
 
 ```php
 $this->assetContext->withContext('bonds', function () {
@@ -410,7 +530,9 @@ $this->assetContext->withContext('bonds', function () {
 });
 ```
 
-### 4. Error Handling
+**Note**: For most use cases, the transparent system handles this automatically.
+
+### 5. Error Handling
 
 Always check if asset types exist before using them:
 
@@ -424,10 +546,24 @@ if (!$this->assetRegistry->has($assetType)) {
 
 If you're migrating from the single-table system:
 
-1. **Keep existing functionality**: The default asset type maintains backward compatibility
-2. **Gradual migration**: Add new asset types alongside existing ones
-3. **Update services**: Modify services to use context-aware operations
-4. **Test thoroughly**: Ensure all existing functionality continues to work
+1. **✅ No Code Changes Required**: The transparent system works with existing code
+2. **✅ Keep existing functionality**: The default asset type maintains backward compatibility
+3. **✅ Gradual migration**: Add new asset types alongside existing ones
+4. **✅ Test thoroughly**: Ensure all existing functionality continues to work
+
+### Migration Example
+
+```php
+// Before (single-table system)
+$user->deposit(100); // Uses default 'wallets' table
+
+// After (multi-asset system) - NO CHANGES NEEDED!
+$user->deposit(100); // Still works, uses default asset type
+
+// Add new asset types
+$bondWallet = new BondWallet(['name' => 'Bond Portfolio']);
+$bondWallet->deposit(1000); // Automatically uses 'bond_wallets' table
+```
 
 ## Troubleshooting
 
@@ -435,8 +571,9 @@ If you're migrating from the single-table system:
 
 1. **Model class not found**: Ensure model classes exist and are autoloaded
 2. **Table doesn't exist**: Run migrations for your asset type tables
-3. **Context not set**: Use `withContext()` or specify asset type explicitly
+3. **Asset type not detected**: Check table names, model classes, or add explicit `getAssetType()` method
 4. **Asset type not registered**: Check configuration and registration
+5. **Foreign key constraint violations**: Ensure wallet IDs exist in the correct asset tables
 
 ### Debugging
 
@@ -452,6 +589,13 @@ dd($context);
 // Check asset configuration
 $config = $assetRegistry->get('bonds');
 dd($config->toArray());
+
+// Debug asset type detection
+use Bavix\Wallet\Internal\Asset\AssetTypeDetector;
+
+$detector = app(AssetTypeDetector::class);
+$debugInfo = $detector->getDetectionDebugInfo($wallet, $holder, $attributes);
+dd($debugInfo);
 ```
 
 ## API Reference
@@ -468,6 +612,14 @@ dd($config->toArray());
 - `getMeta()`: Get all metadata
 - `getMetaValue($key, $default = null)`: Get specific metadata value
 - `hasMetaValue($key)`: Check if metadata key exists
+
+### AssetTypeDetector
+
+- `detect($wallet, $holder, $attributes)`: Detect asset type from multiple sources
+- `detectFromWallet($wallet)`: Detect asset type from wallet model
+- `detectFromHolder($holder)`: Detect asset type from holder model
+- `detectFromAttributes($attributes)`: Detect asset type from attributes array
+- `getDetectionDebugInfo($wallet, $holder, $attributes)`: Get detailed detection information
 
 ### AssetTypeRegistry
 
@@ -497,3 +649,209 @@ dd($config->toArray());
 - `createTransferRepository($assetType = null)`: Create transfer repository
 - `getAssetConfig($assetType = null)`: Get asset configuration
 - `isAssetTypeSupported($assetType)`: Check if asset type is supported
+
+### AssetAwareTransactionService
+
+- `makeOne($wallet, $type, $amount, $meta, $confirmed)`: Create transaction with automatic asset detection
+- `apply($wallets, $objects)`: Apply transactions with automatic asset detection
+- `getAssetTypeDetector()`: Get the asset type detector for debugging
+- `getAssetContext()`: Get the asset context for debugging
+- `getAssetRepositoryFactory()`: Get the asset repository factory for debugging
+
+## Complete Example
+
+Here's a complete example showing how to set up and use the multi-asset system:
+
+### 1. Configuration
+
+```php
+// config/wallet-assets.php
+<?php
+
+return [
+    'bonds' => [
+        'wallet_table' => 'bond_wallets',
+        'transaction_table' => 'bond_transactions',
+        'transfer_table' => 'bond_transfers',
+        'wallet_model' => 'App\Models\BondWallet',
+        'transaction_model' => 'App\Models\BondTransaction',
+        'transfer_model' => 'App\Models\BondTransfer',
+        'meta' => [
+            'description' => 'Bond assets for trading',
+            'currency' => 'USD'
+        ]
+    ],
+    'shares' => [
+        'wallet_table' => 'share_wallets',
+        'transaction_table' => 'share_transactions',
+        'transfer_table' => 'share_transfers',
+        'wallet_model' => 'App\Models\ShareWallet',
+        'transaction_model' => 'App\Models\ShareTransaction',
+        'transfer_model' => 'App\Models\ShareTransfer',
+        'meta' => [
+            'description' => 'Company shares',
+            'tradable' => true
+        ]
+    ]
+];
+
+// config/wallet.php
+<?php
+
+return [
+    // ... existing configuration ...
+    'assets' => require __DIR__ . '/wallet-assets.php',
+];
+```
+
+### 2. Models
+
+```php
+// app/Models/BondWallet.php
+<?php
+
+namespace App\Models;
+
+use Bavix\Wallet\Models\Wallet as BaseWallet;
+
+class BondWallet extends BaseWallet
+{
+    protected $table = 'bond_wallets';
+
+    public function getBondType()
+    {
+        return $this->meta['bond_type'] ?? null;
+    }
+}
+
+// app/Models/ShareWallet.php
+<?php
+
+namespace App\Models;
+
+use Bavix\Wallet\Models\Wallet as BaseWallet;
+
+class ShareWallet extends BaseWallet
+{
+    protected $table = 'share_wallets';
+
+    public function getShareSymbol()
+    {
+        return $this->meta['symbol'] ?? null;
+    }
+}
+```
+
+### 3. Usage
+
+```php
+// app/Services/TradingService.php
+<?php
+
+namespace App\Services;
+
+use App\Models\BondWallet;
+use App\Models\ShareWallet;
+use App\Models\User;
+
+class TradingService
+{
+    public function createPortfolios(User $user)
+    {
+        // Create bond portfolio
+        $bondWallet = new BondWallet([
+            'holder_type' => User::class,
+            'holder_id' => $user->id,
+            'name' => 'Bond Portfolio',
+            'meta' => ['bond_type' => 'corporate']
+        ]);
+        $bondWallet->save();
+
+        // Create share portfolio
+        $shareWallet = new ShareWallet([
+            'holder_type' => User::class,
+            'holder_id' => $user->id,
+            'name' => 'Share Portfolio',
+            'meta' => ['symbol' => 'AAPL']
+        ]);
+        $shareWallet->save();
+
+        return [$bondWallet, $shareWallet];
+    }
+
+    public function tradeAssets($bondWallet, $shareWallet, $amount)
+    {
+        // These automatically use the correct asset tables!
+        $bondWallet->withdraw($amount);
+        $shareWallet->deposit($amount);
+
+        // Transfer between different asset types
+        $bondWallet->transfer($shareWallet, $amount);
+    }
+
+    public function getPortfolioValue($user)
+    {
+        $bondWallet = $user->bondWallet;
+        $shareWallet = $user->shareWallet;
+
+        return [
+            'bonds' => $bondWallet->balance,
+            'shares' => $shareWallet->balance,
+            'total' => $bondWallet->balance + $shareWallet->balance
+        ];
+    }
+}
+```
+
+### 4. Controller Usage
+
+```php
+// app/Http/Controllers/TradingController.php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Services\TradingService;
+use Illuminate\Http\Request;
+
+class TradingController extends Controller
+{
+    public function __construct(
+        private TradingService $tradingService
+    ) {}
+
+    public function deposit(Request $request)
+    {
+        $user = auth()->user();
+        $wallet = $user->bondWallet; // or $user->shareWallet
+        $amount = $request->input('amount');
+
+        // This automatically uses the correct asset table!
+        $transaction = $wallet->deposit($amount);
+
+        return response()->json([
+            'success' => true,
+            'balance' => $wallet->balance,
+            'transaction_id' => $transaction->id
+        ]);
+    }
+
+    public function transfer(Request $request)
+    {
+        $user = auth()->user();
+        $fromWallet = $user->bondWallet;
+        $toWallet = $user->shareWallet;
+        $amount = $request->input('amount');
+
+        // This automatically handles the asset type detection!
+        $transfer = $fromWallet->transfer($toWallet, $amount);
+
+        return response()->json([
+            'success' => true,
+            'transfer_id' => $transfer->id
+        ]);
+    }
+}
+```
+
+This example demonstrates how the multi-asset system works transparently - you use the same Bavix methods you're familiar with, but the system automatically routes operations to the correct asset tables based on the wallet models.

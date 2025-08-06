@@ -14,7 +14,7 @@ use Bavix\Wallet\Models\Transaction;
 /**
  * @internal
  */
-final readonly class TransactionService implements TransactionServiceInterface
+readonly class TransactionService implements TransactionServiceInterface
 {
     public function __construct(
         private TransactionCreatedEventAssemblerInterface $transactionCreatedEventAssembler,
