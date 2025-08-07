@@ -82,6 +82,8 @@ use Bavix\Wallet\Internal\Asset\AssetTypeRegistryInterface;
 use Bavix\Wallet\Services\AssetAwareAtmService;
 use Bavix\Wallet\Services\AssetAwareTransactionService;
 use Bavix\Wallet\Services\AssetAwareTransferService;
+use Bavix\Wallet\Services\AssetAwareWalletService;
+use Bavix\Wallet\Services\AssetAwareWalletServiceInterface;
 use Bavix\Wallet\Models\Transaction;
 use Bavix\Wallet\Models\Transfer;
 use Bavix\Wallet\Models\Wallet;
@@ -502,6 +504,22 @@ final class WalletServiceProvider extends ServiceProvider implements DeferrableP
                 $app->make(AssetRepositoryFactoryInterface::class)
             );
         });
+
+        // Register AssetAwareWalletService as singleton
+        $this->app->singleton(AssetAwareWalletService::class, function ($app) {
+            return new AssetAwareWalletService(
+                $app->make(AssetContextInterface::class),
+                $app->make(AssetRepositoryFactoryInterface::class),
+                $app->make(AssetTypeDetector::class),
+                $app->make(\Bavix\Wallet\Internal\Service\IdentifierFactoryServiceInterface::class),
+                $app->make(\Bavix\Wallet\Internal\Service\DispatcherServiceInterface::class),
+                $app->make(\Bavix\Wallet\Internal\Assembler\WalletCreatedEventAssemblerInterface::class),
+                $app->make(\Bavix\Wallet\Internal\Repository\WalletRepositoryInterface::class)
+            );
+        });
+
+        // Bind interface to implementation for easy access
+        $this->app->bind(AssetAwareWalletServiceInterface::class, AssetAwareWalletService::class);
 
 
     }

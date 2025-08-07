@@ -63,4 +63,11 @@ interface AssetRepositoryFactoryInterface
      * @return bool True if the asset type is supported
      */
     public function isAssetTypeSupported(string $assetType): bool;
+
+    /**
+     * Get all registered asset types.
+     *
+     * @return array<string> Array of asset type identifiers
+     */
+    public function getAllAssetTypes(): array;
 }

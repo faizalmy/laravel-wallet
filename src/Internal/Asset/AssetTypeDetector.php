@@ -113,6 +113,130 @@ final class AssetTypeDetector
     }
 
     /**
+     * Detect asset type from wallet creation data.
+     *
+     * This method analyzes wallet creation data to determine the appropriate
+     * asset type using multiple detection strategies.
+     *
+     * @param array<string, mixed> $data The wallet creation data
+     * @return string|null The detected asset type or null if not found
+     */
+    public function detectFromWalletData(array $data): ?string
+    {
+        // Strategy 1: Explicit asset type in metadata
+        if (isset($data['meta']['asset_type'])) {
+            $assetType = $data['meta']['asset_type'];
+            if ($this->registry->has($assetType)) {
+                return $assetType;
+            }
+        }
+
+        // Strategy 2: Detect from slug pattern
+        if (isset($data['slug'])) {
+            $assetType = $this->detectFromSlug($data['slug']);
+            if ($assetType !== null) {
+                return $assetType;
+            }
+        }
+
+        // Strategy 3: Detect from name pattern
+        if (isset($data['name'])) {
+            $assetType = $this->detectFromName($data['name']);
+            if ($assetType !== null) {
+                return $assetType;
+            }
+        }
+
+        // Strategy 4: Detect from required fields in metadata
+        if (isset($data['meta'])) {
+            $assetType = $this->detectFromRequiredFields($data['meta']);
+            if ($assetType !== null) {
+                return $assetType;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Detect asset type from slug patterns.
+     *
+     * @param string $slug The wallet slug
+     * @return string|null The detected asset type or null if not found
+     */
+    private function detectFromSlug(string $slug): ?string
+    {
+        $patterns = [
+            '/^share_/' => 'shares',
+            '/^bond_/' => 'bonds',
+            '/^inventory_/' => 'inventory',
+            '/^crypto_/' => 'crypto',
+            '/^commodity_/' => 'commodity',
+            '/^currency_/' => 'currency',
+        ];
+
+        foreach ($patterns as $pattern => $assetType) {
+            if (preg_match($pattern, $slug) && $this->registry->has($assetType)) {
+                return $assetType;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Detect asset type from name patterns.
+     *
+     * @param string $name The wallet name
+     * @return string|null The detected asset type or null if not found
+     */
+    private function detectFromName(string $name): ?string
+    {
+        $patterns = [
+            '/\bshare\b/i' => 'shares',
+            '/\bbond\b/i' => 'bonds',
+            '/\binventory\b/i' => 'inventory',
+            '/\bcrypto\b/i' => 'crypto',
+            '/\bcommodity\b/i' => 'commodity',
+            '/\bcurrency\b/i' => 'currency',
+        ];
+
+        foreach ($patterns as $pattern => $assetType) {
+            if (preg_match($pattern, $name) && $this->registry->has($assetType)) {
+                return $assetType;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Detect asset type from required fields in metadata.
+     *
+     * @param array<string, mixed> $meta The metadata array
+     * @return string|null The detected asset type or null if not found
+     */
+    private function detectFromRequiredFields(array $meta): ?string
+    {
+        $fieldMappings = [
+            'share_id' => 'shares',
+            'bond_id' => 'bonds',
+            'item_id' => 'inventory',
+            'crypto_address' => 'crypto',
+            'commodity_id' => 'commodity',
+            'currency_code' => 'currency',
+        ];
+
+        foreach ($fieldMappings as $field => $assetType) {
+            if (isset($meta[$field]) && $this->registry->has($assetType)) {
+                return $assetType;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Detect asset type from multiple sources with priority order.
      *
      * @param object|null $wallet The wallet model instance

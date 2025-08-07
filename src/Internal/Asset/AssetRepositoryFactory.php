@@ -130,6 +130,17 @@ final class AssetRepositoryFactory implements AssetRepositoryFactoryInterface
     }
 
     /**
+     * Get all registered asset types.
+     *
+     * @param string $assetType The asset type identifier
+     * @return array<string> Array of asset type identifiers
+     */
+    public function getAllAssetTypes(): array
+    {
+        return array_keys($this->assetRegistry->getAll());
+    }
+
+    /**
      * Create a model instance from a class name.
      *
      * @param string $modelClass The fully qualified model class name
