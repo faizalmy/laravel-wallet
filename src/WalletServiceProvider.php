@@ -477,7 +477,7 @@ final class WalletServiceProvider extends ServiceProvider implements DeferrableP
         });
 
         // Bind AssetAwareTransactionService to TransactionServiceInterface for transparent usage
-        $this->app->bind(\Bavix\Wallet\Services\TransactionServiceInterface::class, AssetAwareTransactionService::class);
+        $this->app->singleton(\Bavix\Wallet\Services\TransactionServiceInterface::class, AssetAwareTransactionService::class);
     }
 
     /**

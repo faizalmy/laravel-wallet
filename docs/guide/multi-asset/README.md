@@ -565,6 +565,28 @@ $bondWallet = new BondWallet(['name' => 'Bond Portfolio']);
 $bondWallet->deposit(1000); // Automatically uses 'bond_wallets' table
 ```
 
+## Service Binding Fix (v2.0+)
+
+### Issue Resolved
+The multi-asset system had a service binding conflict that prevented transfer operations from using asset-specific tables. This has been fixed in version 2.0+.
+
+### What Was Fixed
+- **Problem**: `TransferService` was not using `AssetAwareTransactionService` due to Laravel singleton binding precedence
+- **Solution**: Changed `bind()` to `singleton()` in the service provider to properly override the service registration
+- **Impact**: Transfer operations now automatically use the correct asset tables
+
+### Verification
+You can verify the fix is working by checking:
+
+```php
+// This should return AssetAwareTransactionService
+$service = app(\Bavix\Wallet\Services\TransactionServiceInterface::class);
+dd(get_class($service));
+
+// Transfer operations should now work with asset-specific tables
+$shareWallet->transfer($otherWallet, 100); // Uses share_transactions table
+```
+
 ## Troubleshooting
 
 ### Common Issues
@@ -574,6 +596,7 @@ $bondWallet->deposit(1000); // Automatically uses 'bond_wallets' table
 3. **Asset type not detected**: Check table names, model classes, or add explicit `getAssetType()` method
 4. **Asset type not registered**: Check configuration and registration
 5. **Foreign key constraint violations**: Ensure wallet IDs exist in the correct asset tables
+6. **Transfer operations still use default tables**: This was a service binding issue that has been fixed in the latest version
 
 ### Debugging
 
@@ -596,7 +619,18 @@ use Bavix\Wallet\Internal\Asset\AssetTypeDetector;
 $detector = app(AssetTypeDetector::class);
 $debugInfo = $detector->getDetectionDebugInfo($wallet, $holder, $attributes);
 dd($debugInfo);
-```
+
+// Verify service binding is correct
+$transactionService = app(\Bavix\Wallet\Services\TransactionServiceInterface::class);
+dd(get_class($transactionService)); // Should be AssetAwareTransactionService
+
+// Check if TransferService is using AssetAwareTransactionService
+$transferService = app(\Bavix\Wallet\Services\TransferServiceInterface::class);
+$reflection = new \ReflectionClass($transferService);
+$property = $reflection->getProperty('transactionService');
+$property->setAccessible(true);
+$injectedService = $property->getValue($transferService);
+dd(get_class($injectedService)); // Should be AssetAwareTransactionService
 
 ## API Reference
 
