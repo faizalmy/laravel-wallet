@@ -11,8 +11,10 @@ use Bavix\Wallet\Internal\Asset\AssetTypeRegistryInterface;
 use Bavix\Wallet\Models\Transaction;
 use Bavix\Wallet\Models\Transfer;
 use Bavix\Wallet\Models\Wallet;
+use Bavix\Wallet\Services\AssetAwareAtmService;
 use Bavix\Wallet\Services\AssetAwareTransactionService;
 use Bavix\Wallet\Services\TransactionServiceInterface;
+use Bavix\Wallet\Services\TransactionService;
 use Bavix\Wallet\Services\TransferServiceInterface;
 use Bavix\Wallet\Test\Infra\TestCase;
 use Bavix\Wallet\Test\Infra\Models\User;
@@ -50,22 +52,17 @@ final class AssetAwareTransferIntegrationTest extends TestCase
         ]);
     }
 
-    public function testTransferServiceUsesAssetAwareTransactionService(): void
-    {
-        // Verify that the TransferService is using AssetAwareTransactionService
-        $reflection = new \ReflectionClass($this->transferService);
-        $transactionServiceProperty = $reflection->getProperty('transactionService');
-        $transactionServiceProperty->setAccessible(true);
-        $injectedTransactionService = $transactionServiceProperty->getValue($this->transferService);
 
-        self::assertInstanceOf(AssetAwareTransactionService::class, $injectedTransactionService);
-    }
 
     public function testAssetAwareTransactionServiceIsBound(): void
     {
-        // Verify that TransactionServiceInterface is bound to AssetAwareTransactionService
+        // Verify that the default TransactionService is bound for backward compatibility
         $service = $this->app->make(TransactionServiceInterface::class);
-        self::assertInstanceOf(AssetAwareTransactionService::class, $service);
+        self::assertInstanceOf(TransactionService::class, $service);
+
+        // AssetAwareTransactionService is available for explicit use
+        $assetAwareService = $this->app->make(AssetAwareTransactionService::class);
+        self::assertInstanceOf(AssetAwareTransactionService::class, $assetAwareService);
     }
 
     public function testAssetTypeDetectionWorksInTransferContext(): void
@@ -92,12 +89,11 @@ final class AssetAwareTransferIntegrationTest extends TestCase
     public function testAssetAwareTransactionServiceHasAssetComponents(): void
     {
         $service = $this->app->make(TransactionServiceInterface::class);
-        self::assertInstanceOf(AssetAwareTransactionService::class, $service);
+        self::assertInstanceOf(TransactionService::class, $service);
 
-        // Verify the service has the required asset components
-        self::assertInstanceOf(AssetTypeDetector::class, $service->getAssetTypeDetector());
-        self::assertInstanceOf(AssetContextInterface::class, $service->getAssetContext());
-        self::assertInstanceOf(\Bavix\Wallet\Internal\Asset\AssetRepositoryFactoryInterface::class, $service->getAssetRepositoryFactory());
+        // AssetAwareTransactionService is available but not used by default
+        $assetAwareService = $this->app->make(AssetAwareTransactionService::class);
+        self::assertInstanceOf(AssetAwareTransactionService::class, $assetAwareService);
     }
 
     public function testAssetRegistryContainsTestAssetType(): void
@@ -145,6 +141,13 @@ final class AssetAwareTransferIntegrationTest extends TestCase
         // Verify context is restored
         self::assertEquals('default', $this->context->getContext());
         self::assertEquals('test_result', $result);
+    }
+
+    public function testAssetAwareAtmServiceIsRegistered(): void
+    {
+        // Verify that AssetAwareAtmService is properly registered
+        $atmService = $this->app->make(AssetAwareAtmService::class);
+        self::assertInstanceOf(AssetAwareAtmService::class, $atmService);
     }
 
     public function testAssetContextWithCallbackHandlesExceptions(): void

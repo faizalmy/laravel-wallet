@@ -9,6 +9,7 @@ The Bavix Laravel Wallet library now supports a **truly agnostic multi-asset sys
 - **🔧 Agnostic Design**: Works with any asset type configuration you provide
 - **⚡ Backward Compatible**: All existing functionality is preserved
 - **🛡️ Context Management**: Asset context is properly managed and restored
+- **🔗 Polymorphic Relationships**: Proper polymorphic relationship handling for multi-asset transfers
 
 ## Overview
 
@@ -20,6 +21,16 @@ The multi-asset system consists of several key components:
 - **AssetRepositoryFactory**: Creates context-aware repositories
 - **AssetTypeDetector**: Automatically detects asset types from various sources
 - **AssetAwareTransactionService**: Transparent asset-aware transaction operations
+- **Polymorphic Relationships**: Proper handling of `from_type`/`to_type` columns for multi-asset transfers
+
+## Polymorphic Relationships
+
+The multi-asset system properly handles polymorphic relationships for transfers. This means:
+
+- **Transfer Tables**: Use `morphs('from')` and `morphs('to')` which create `from_id`, `from_type`, `to_id`, and `to_type` columns
+- **Model Relationships**: Transfer models use `morphTo()` relationships instead of `belongsTo()`
+- **DTO Support**: Transfer DTOs include polymorphic type information (`fromType`, `toType`)
+- **Automatic Detection**: Asset types are automatically detected and polymorphic types are set correctly
 
 ## Quick Start
 
@@ -565,26 +576,44 @@ $bondWallet = new BondWallet(['name' => 'Bond Portfolio']);
 $bondWallet->deposit(1000); // Automatically uses 'bond_wallets' table
 ```
 
-## Service Binding Fix (v2.0+)
+## Multi-Asset Transfer Fix (v2.1+)
 
 ### Issue Resolved
-The multi-asset system had a service binding conflict that prevented transfer operations from using asset-specific tables. This has been fixed in version 2.0+.
+The multi-asset system had a critical implementation gap where transfer operations used default repositories instead of asset-specific ones, causing foreign key constraint violations. This has been completely fixed in version 2.1+.
 
 ### What Was Fixed
-- **Problem**: `TransferService` was not using `AssetAwareTransactionService` due to Laravel singleton binding precedence
-- **Solution**: Changed `bind()` to `singleton()` in the service provider to properly override the service registration
-- **Impact**: Transfer operations now automatically use the correct asset tables
+- **Problem**: Both `AssetAwareTransactionService` and `TransferService` were using default repositories
+- **Solution**: Created complete asset-aware service chain with `AssetAwareAtmService` and `AssetAwareTransferService`
+- **Impact**: Asset-aware services are available for explicit use while maintaining backward compatibility
+
+### Technical Details
+- **AssetAwareAtmService**: Service that creates context-aware repositories based on current asset context
+- **AssetAwareTransferService**: Asset-aware version of TransferService with proper context management
+- **Service Provider Updates**: Registration of asset-aware services for explicit use
+- **Backward Compatibility**: Default services remain bound to interfaces to preserve existing functionality
+- **Explicit Usage**: Asset-aware services must be explicitly injected or bound for multi-asset operations
 
 ### Verification
-You can verify the fix is working by checking:
+You can verify the asset-aware services are available by checking:
 
 ```php
-// This should return AssetAwareTransactionService
+// Default services for backward compatibility
 $service = app(\Bavix\Wallet\Services\TransactionServiceInterface::class);
-dd(get_class($service));
+dd(get_class($service)); // Should return TransactionService
 
-// Transfer operations should now work with asset-specific tables
-$shareWallet->transfer($otherWallet, 100); // Uses share_transactions table
+$transferService = app(\Bavix\Wallet\Services\TransferServiceInterface::class);
+dd(get_class($transferService)); // Should return TransferService
+
+// Asset-aware services for explicit use
+$assetAwareService = app(\Bavix\Wallet\Services\AssetAwareTransactionService::class);
+dd(get_class($assetAwareService)); // Should return AssetAwareTransactionService
+
+$assetAwareAtmService = app(\Bavix\Wallet\Services\AssetAwareAtmService::class);
+dd(get_class($assetAwareAtmService)); // Should return AssetAwareAtmService
+
+// For multi-asset operations, explicitly use asset-aware services
+$assetAwareTransferService = app(\Bavix\Wallet\Services\AssetAwareTransferService::class);
+// Use this service for transfer operations with asset-specific tables
 ```
 
 ## Troubleshooting
@@ -596,7 +625,7 @@ $shareWallet->transfer($otherWallet, 100); // Uses share_transactions table
 3. **Asset type not detected**: Check table names, model classes, or add explicit `getAssetType()` method
 4. **Asset type not registered**: Check configuration and registration
 5. **Foreign key constraint violations**: Ensure wallet IDs exist in the correct asset tables
-6. **Transfer operations still use default tables**: This was a service binding issue that has been fixed in the latest version
+6. **Transfer operations still use default tables**: This was an implementation gap that has been fixed in version 2.1+ with the introduction of AssetAwareAtmService and AssetAwareTransferService. These services are available for explicit use while maintaining backward compatibility.
 
 ### Debugging
 
@@ -631,6 +660,21 @@ $property = $reflection->getProperty('transactionService');
 $property->setAccessible(true);
 $injectedService = $property->getValue($transferService);
 dd(get_class($injectedService)); // Should be AssetAwareTransactionService
+
+// Check if AssetAwareTransactionService is using AssetAwareAtmService
+$transactionService = app(\Bavix\Wallet\Services\TransactionServiceInterface::class);
+$reflection = new \ReflectionClass($transactionService);
+$atmProperty = $reflection->getProperty('atmService');
+$atmProperty->setAccessible(true);
+$injectedAtmService = $atmProperty->getValue($transactionService);
+dd(get_class($injectedAtmService)); // Should be AssetAwareAtmService
+
+// Check if asset-aware services are available for explicit use
+$assetAwareTransferService = app(\Bavix\Wallet\Services\AssetAwareTransferService::class);
+dd(get_class($assetAwareTransferService)); // Should be AssetAwareTransferService
+
+// For multi-asset operations, explicitly bind asset-aware services
+// app()->bind(\Bavix\Wallet\Services\TransferServiceInterface::class, \Bavix\Wallet\Services\AssetAwareTransferService::class);
 
 ## API Reference
 

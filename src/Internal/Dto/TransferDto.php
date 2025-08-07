@@ -18,7 +18,9 @@ final readonly class TransferDto implements TransferDtoInterface
         private int $withdrawId,
         private string $status,
         private int $fromId,
+        private string $fromType,
         private int $toId,
+        private string $toType,
         private int $discount,
         private string $fee,
         private ?array $extra,
@@ -55,6 +57,16 @@ final readonly class TransferDto implements TransferDtoInterface
     public function getToId(): int|string
     {
         return $this->toId;
+    }
+
+    public function getFromType(): string
+    {
+        return $this->fromType;
+    }
+
+    public function getToType(): string
+    {
+        return $this->toType;
     }
 
     public function getDiscount(): int

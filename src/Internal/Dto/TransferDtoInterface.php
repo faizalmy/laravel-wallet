@@ -41,6 +41,16 @@ interface TransferDtoInterface
     public function getToId(): int|string;
 
     /**
+     * Get the morph class of the wallet that the transfer is from.
+     */
+    public function getFromType(): string;
+
+    /**
+     * Get the morph class of the wallet that the transfer is to.
+     */
+    public function getToType(): string;
+
+    /**
      * Get the discount amount of the transfer.
      */
     public function getDiscount(): int;

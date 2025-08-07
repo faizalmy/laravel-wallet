@@ -17,7 +17,7 @@ use Bavix\Wallet\Models\Wallet;
 use Bavix\Wallet\Models\Transaction;
 use Bavix\Wallet\Services\AssetAwareTransactionService;
 use Bavix\Wallet\Services\AssistantServiceInterface;
-use Bavix\Wallet\Services\AtmServiceInterface;
+use Bavix\Wallet\Services\AssetAwareAtmService;
 use Bavix\Wallet\Services\CastServiceInterface;
 use Bavix\Wallet\Services\PrepareServiceInterface;
 use Bavix\Wallet\Services\RegulatorServiceInterface;
@@ -66,7 +66,7 @@ final class AssetAwareTransactionServiceTest extends TestCase
             $this->createMock(RegulatorServiceInterface::class),
             $this->createMock(PrepareServiceInterface::class),
             $this->createMock(CastServiceInterface::class),
-            $this->createMock(AtmServiceInterface::class),
+            $this->createMock(AssetAwareAtmService::class),
             $this->detector,
             $this->context,
             $this->factory

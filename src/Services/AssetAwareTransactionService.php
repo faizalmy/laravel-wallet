@@ -63,7 +63,7 @@ final readonly class AssetAwareTransactionService extends TransactionService
     ): Transaction {
         // Detect asset type from wallet
         $assetType = $this->assetTypeDetector->detect($wallet);
-        
+
         if ($assetType !== null) {
             // Use asset context to set the detected asset type
             return $this->assetContext->withContext($assetType, function () use ($wallet, $type, $amount, $meta, $confirmed) {
@@ -88,7 +88,7 @@ final readonly class AssetAwareTransactionService extends TransactionService
         // Detect asset type from first wallet (assuming all wallets are same asset type)
         $firstWallet = reset($wallets);
         $assetType = $firstWallet ? $this->assetTypeDetector->detect($firstWallet) : null;
-        
+
         if ($assetType !== null) {
             // Use asset context to set the detected asset type
             return $this->assetContext->withContext($assetType, function () use ($wallets, $objects) {
@@ -129,4 +129,4 @@ final readonly class AssetAwareTransactionService extends TransactionService
     {
         return $this->repositoryFactory;
     }
-} 
+}
