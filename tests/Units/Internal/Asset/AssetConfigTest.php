@@ -14,17 +14,16 @@ final class AssetConfigTest extends TestCase
 {
     public function testCreateAssetConfig(): void
     {
-        $config = new AssetConfig(
-            assetType: 'bonds',
-            walletTable: 'bond_wallets',
-            transactionTable: 'bond_transactions',
-            transferTable: 'bond_transfers',
-            walletModel: 'App\Models\BondWallet',
-            transactionModel: 'App\Models\BondTransaction',
-            transferModel: 'App\Models\BondTransfer',
-            migrationPath: '/path/to/migrations',
-            meta: ['description' => 'Bond assets']
-        );
+        $config = AssetConfig::fromArray('bonds', [
+            'wallet_table' => 'bond_wallets',
+            'transaction_table' => 'bond_transactions',
+            'transfer_table' => 'bond_transfers',
+            'wallet_model' => 'App\Models\BondWallet',
+            'transaction_model' => 'App\Models\BondTransaction',
+            'transfer_model' => 'App\Models\BondTransfer',
+            'migration_path' => '/path/to/migrations',
+            'meta' => ['description' => 'Bond assets']
+        ]);
 
         self::assertSame('bonds', $config->getAssetType());
         self::assertSame('bond_wallets', $config->getWalletTable());
@@ -78,17 +77,16 @@ final class AssetConfigTest extends TestCase
 
     public function testToArray(): void
     {
-        $config = new AssetConfig(
-            assetType: 'bonds',
-            walletTable: 'bond_wallets',
-            transactionTable: 'bond_transactions',
-            transferTable: 'bond_transfers',
-            walletModel: 'App\Models\BondWallet',
-            transactionModel: 'App\Models\BondTransaction',
-            transferModel: 'App\Models\BondTransfer',
-            migrationPath: '/path/to/migrations',
-            meta: ['description' => 'Bond assets']
-        );
+        $config = AssetConfig::fromArray('bonds', [
+            'wallet_table' => 'bond_wallets',
+            'transaction_table' => 'bond_transactions',
+            'transfer_table' => 'bond_transfers',
+            'wallet_model' => 'App\Models\BondWallet',
+            'transaction_model' => 'App\Models\BondTransaction',
+            'transfer_model' => 'App\Models\BondTransfer',
+            'migration_path' => '/path/to/migrations',
+            'meta' => ['description' => 'Bond assets']
+        ]);
 
         $expected = [
             'wallet_table' => 'bond_wallets',
@@ -106,25 +104,23 @@ final class AssetConfigTest extends TestCase
 
     public function testIsDefault(): void
     {
-        $defaultConfig = new AssetConfig(
-            assetType: 'default',
-            walletTable: 'wallets',
-            transactionTable: 'transactions',
-            transferTable: 'transfers',
-            walletModel: 'Bavix\Wallet\Models\Wallet',
-            transactionModel: 'Bavix\Wallet\Models\Transaction',
-            transferModel: 'Bavix\Wallet\Models\Transfer'
-        );
+        $defaultConfig = AssetConfig::fromArray('default', [
+            'wallet_table' => 'wallets',
+            'transaction_table' => 'transactions',
+            'transfer_table' => 'transfers',
+            'wallet_model' => 'Bavix\Wallet\Models\Wallet',
+            'transaction_model' => 'Bavix\Wallet\Models\Transaction',
+            'transfer_model' => 'Bavix\Wallet\Models\Transfer'
+        ]);
 
-        $customConfig = new AssetConfig(
-            assetType: 'bonds',
-            walletTable: 'bond_wallets',
-            transactionTable: 'bond_transactions',
-            transferTable: 'bond_transfers',
-            walletModel: 'App\Models\BondWallet',
-            transactionModel: 'App\Models\BondTransaction',
-            transferModel: 'App\Models\BondTransfer'
-        );
+        $customConfig = AssetConfig::fromArray('bonds', [
+            'wallet_table' => 'bond_wallets',
+            'transaction_table' => 'bond_transactions',
+            'transfer_table' => 'bond_transfers',
+            'wallet_model' => 'App\Models\BondWallet',
+            'transaction_model' => 'App\Models\BondTransaction',
+            'transfer_model' => 'App\Models\BondTransfer'
+        ]);
 
         self::assertTrue($defaultConfig->isDefault());
         self::assertFalse($customConfig->isDefault());
@@ -132,15 +128,14 @@ final class AssetConfigTest extends TestCase
 
     public function testGetTableByType(): void
     {
-        $config = new AssetConfig(
-            assetType: 'bonds',
-            walletTable: 'bond_wallets',
-            transactionTable: 'bond_transactions',
-            transferTable: 'bond_transfers',
-            walletModel: 'App\Models\BondWallet',
-            transactionModel: 'App\Models\BondTransaction',
-            transferModel: 'App\Models\BondTransfer'
-        );
+        $config = AssetConfig::fromArray('bonds', [
+            'wallet_table' => 'bond_wallets',
+            'transaction_table' => 'bond_transactions',
+            'transfer_table' => 'bond_transfers',
+            'wallet_model' => 'App\Models\BondWallet',
+            'transaction_model' => 'App\Models\BondTransaction',
+            'transfer_model' => 'App\Models\BondTransfer'
+        ]);
 
         self::assertSame('bond_wallets', $config->getTableByType('wallet'));
         self::assertSame('bond_transactions', $config->getTableByType('transaction'));
@@ -149,15 +144,14 @@ final class AssetConfigTest extends TestCase
 
     public function testGetTableByTypeWithInvalidType(): void
     {
-        $config = new AssetConfig(
-            assetType: 'bonds',
-            walletTable: 'bond_wallets',
-            transactionTable: 'bond_transactions',
-            transferTable: 'bond_transfers',
-            walletModel: 'App\Models\BondWallet',
-            transactionModel: 'App\Models\BondTransaction',
-            transferModel: 'App\Models\BondTransfer'
-        );
+        $config = AssetConfig::fromArray('bonds', [
+            'wallet_table' => 'bond_wallets',
+            'transaction_table' => 'bond_transactions',
+            'transfer_table' => 'bond_transfers',
+            'wallet_model' => 'App\Models\BondWallet',
+            'transaction_model' => 'App\Models\BondTransaction',
+            'transfer_model' => 'App\Models\BondTransfer'
+        ]);
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid table type: invalid');
@@ -167,15 +161,14 @@ final class AssetConfigTest extends TestCase
 
     public function testGetModelByType(): void
     {
-        $config = new AssetConfig(
-            assetType: 'bonds',
-            walletTable: 'bond_wallets',
-            transactionTable: 'bond_transactions',
-            transferTable: 'bond_transfers',
-            walletModel: 'App\Models\BondWallet',
-            transactionModel: 'App\Models\BondTransaction',
-            transferModel: 'App\Models\BondTransfer'
-        );
+        $config = AssetConfig::fromArray('bonds', [
+            'wallet_table' => 'bond_wallets',
+            'transaction_table' => 'bond_transactions',
+            'transfer_table' => 'bond_transfers',
+            'wallet_model' => 'App\Models\BondWallet',
+            'transaction_model' => 'App\Models\BondTransaction',
+            'transfer_model' => 'App\Models\BondTransfer'
+        ]);
 
         self::assertSame('App\Models\BondWallet', $config->getModelByType('wallet'));
         self::assertSame('App\Models\BondTransaction', $config->getModelByType('transaction'));
@@ -184,15 +177,14 @@ final class AssetConfigTest extends TestCase
 
     public function testGetModelByTypeWithInvalidType(): void
     {
-        $config = new AssetConfig(
-            assetType: 'bonds',
-            walletTable: 'bond_wallets',
-            transactionTable: 'bond_transactions',
-            transferTable: 'bond_transfers',
-            walletModel: 'App\Models\BondWallet',
-            transactionModel: 'App\Models\BondTransaction',
-            transferModel: 'App\Models\BondTransfer'
-        );
+        $config = AssetConfig::fromArray('bonds', [
+            'wallet_table' => 'bond_wallets',
+            'transaction_table' => 'bond_transactions',
+            'transfer_table' => 'bond_transfers',
+            'wallet_model' => 'App\Models\BondWallet',
+            'transaction_model' => 'App\Models\BondTransaction',
+            'transfer_model' => 'App\Models\BondTransfer'
+        ]);
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid model type: invalid');
@@ -202,16 +194,15 @@ final class AssetConfigTest extends TestCase
 
     public function testGetMetaValue(): void
     {
-        $config = new AssetConfig(
-            assetType: 'bonds',
-            walletTable: 'bond_wallets',
-            transactionTable: 'bond_transactions',
-            transferTable: 'bond_transfers',
-            walletModel: 'App\Models\BondWallet',
-            transactionModel: 'App\Models\BondTransaction',
-            transferModel: 'App\Models\BondTransfer',
-            meta: ['description' => 'Bond assets', 'category' => 'financial']
-        );
+        $config = AssetConfig::fromArray('bonds', [
+            'wallet_table' => 'bond_wallets',
+            'transaction_table' => 'bond_transactions',
+            'transfer_table' => 'bond_transfers',
+            'wallet_model' => 'App\Models\BondWallet',
+            'transaction_model' => 'App\Models\BondTransaction',
+            'transfer_model' => 'App\Models\BondTransfer',
+            'meta' => ['description' => 'Bond assets', 'category' => 'financial']
+        ]);
 
         self::assertSame('Bond assets', $config->getMetaValue('description'));
         self::assertSame('financial', $config->getMetaValue('category'));
@@ -221,16 +212,15 @@ final class AssetConfigTest extends TestCase
 
     public function testHasMetaValue(): void
     {
-        $config = new AssetConfig(
-            assetType: 'bonds',
-            walletTable: 'bond_wallets',
-            transactionTable: 'bond_transactions',
-            transferTable: 'bond_transfers',
-            walletModel: 'App\Models\BondWallet',
-            transactionModel: 'App\Models\BondTransaction',
-            transferModel: 'App\Models\BondTransfer',
-            meta: ['description' => 'Bond assets']
-        );
+        $config = AssetConfig::fromArray('bonds', [
+            'wallet_table' => 'bond_wallets',
+            'transaction_table' => 'bond_transactions',
+            'transfer_table' => 'bond_transfers',
+            'wallet_model' => 'App\Models\BondWallet',
+            'transaction_model' => 'App\Models\BondTransaction',
+            'transfer_model' => 'App\Models\BondTransfer',
+            'meta' => ['description' => 'Bond assets']
+        ]);
 
         self::assertTrue($config->hasMetaValue('description'));
         self::assertFalse($config->hasMetaValue('nonexistent'));

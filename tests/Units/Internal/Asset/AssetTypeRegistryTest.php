@@ -43,17 +43,16 @@ final class AssetTypeRegistryTest extends TestCase
 
     public function testRegisterAssetTypeFromConfig(): void
     {
-        $config = new AssetConfig(
-            assetType: 'shares',
-            walletTable: 'share_wallets',
-            transactionTable: 'share_transactions',
-            transferTable: 'share_transfers',
-            walletModel: 'App\Models\ShareWallet',
-            transactionModel: 'App\Models\ShareTransaction',
-            transferModel: 'App\Models\ShareTransfer',
-            migrationPath: '/path/to/migrations',
-            meta: ['description' => 'Share assets']
-        );
+        $config = AssetConfig::fromArray('shares', [
+            'wallet_table' => 'share_wallets',
+            'transaction_table' => 'share_transactions',
+            'transfer_table' => 'share_transfers',
+            'wallet_model' => 'App\Models\ShareWallet',
+            'transaction_model' => 'App\Models\ShareTransaction',
+            'transfer_model' => 'App\Models\ShareTransfer',
+            'migration_path' => '/path/to/migrations',
+            'meta' => ['description' => 'Share assets']
+        ]);
 
         $this->registry->registerConfig($config);
 
@@ -169,15 +168,14 @@ final class AssetTypeRegistryTest extends TestCase
 
     public function testSetAndGetDefaultAssetType(): void
     {
-        $defaultConfig = new AssetConfig(
-            assetType: 'default',
-            walletTable: 'wallets',
-            transactionTable: 'transactions',
-            transferTable: 'transfers',
-            walletModel: 'Bavix\Wallet\Models\Wallet',
-            transactionModel: 'Bavix\Wallet\Models\Transaction',
-            transferModel: 'Bavix\Wallet\Models\Transfer'
-        );
+        $defaultConfig = AssetConfig::fromArray('default', [
+            'wallet_table' => 'wallets',
+            'transaction_table' => 'transactions',
+            'transfer_table' => 'transfers',
+            'wallet_model' => 'Bavix\Wallet\Models\Wallet',
+            'transaction_model' => 'Bavix\Wallet\Models\Transaction',
+            'transfer_model' => 'Bavix\Wallet\Models\Transfer'
+        ]);
 
         $this->registry->setDefault($defaultConfig);
 
@@ -188,15 +186,14 @@ final class AssetTypeRegistryTest extends TestCase
 
     public function testResolveAssetTypeWithFallback(): void
     {
-        $defaultConfig = new AssetConfig(
-            assetType: 'default',
-            walletTable: 'wallets',
-            transactionTable: 'transactions',
-            transferTable: 'transfers',
-            walletModel: 'Bavix\Wallet\Models\Wallet',
-            transactionModel: 'Bavix\Wallet\Models\Transaction',
-            transferModel: 'Bavix\Wallet\Models\Transfer'
-        );
+        $defaultConfig = AssetConfig::fromArray('default', [
+            'wallet_table' => 'wallets',
+            'transaction_table' => 'transactions',
+            'transfer_table' => 'transfers',
+            'wallet_model' => 'Bavix\Wallet\Models\Wallet',
+            'transaction_model' => 'Bavix\Wallet\Models\Transaction',
+            'transfer_model' => 'Bavix\Wallet\Models\Transfer'
+        ]);
 
         $this->registry->setDefault($defaultConfig);
 

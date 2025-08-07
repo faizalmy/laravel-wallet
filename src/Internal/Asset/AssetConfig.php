@@ -9,28 +9,21 @@ namespace Bavix\Wallet\Internal\Asset;
  *
  * This class represents the complete configuration for an asset type,
  * including table names, model classes, and migration settings.
+ * Uses value objects for type-safe configuration management.
  */
 final class AssetConfig
 {
     /**
      * @param string $assetType The unique identifier for this asset type
-     * @param string $walletTable The table name for wallets of this asset type
-     * @param string $transactionTable The table name for transactions of this asset type
-     * @param string $transferTable The table name for transfers of this asset type
-     * @param string $walletModel The fully qualified class name for the wallet model
-     * @param string $transactionModel The fully qualified class name for the transaction model
-     * @param string $transferModel The fully qualified class name for the transfer model
+     * @param TableConfiguration $tableConfig The table configuration for this asset type
+     * @param ModelConfiguration $modelConfig The model configuration for this asset type
      * @param string|null $migrationPath The path where migrations should be generated (optional)
      * @param array<string, mixed> $meta Additional metadata for this asset type (optional)
      */
     public function __construct(
         private readonly string $assetType,
-        private readonly string $walletTable,
-        private readonly string $transactionTable,
-        private readonly string $transferTable,
-        private readonly string $walletModel,
-        private readonly string $transactionModel,
-        private readonly string $transferModel,
+        private readonly TableConfiguration $tableConfig,
+        private readonly ModelConfiguration $modelConfig,
         private readonly ?string $migrationPath = null,
         private readonly array $meta = []
     ) {
@@ -53,7 +46,7 @@ final class AssetConfig
      */
     public function getWalletTable(): string
     {
-        return $this->walletTable;
+        return $this->tableConfig->getWalletTable();
     }
 
     /**
@@ -63,7 +56,7 @@ final class AssetConfig
      */
     public function getTransactionTable(): string
     {
-        return $this->transactionTable;
+        return $this->tableConfig->getTransactionTable();
     }
 
     /**
@@ -73,7 +66,7 @@ final class AssetConfig
      */
     public function getTransferTable(): string
     {
-        return $this->transferTable;
+        return $this->tableConfig->getTransferTable();
     }
 
     /**
@@ -83,7 +76,7 @@ final class AssetConfig
      */
     public function getWalletModel(): string
     {
-        return $this->walletModel;
+        return $this->modelConfig->getWalletModel();
     }
 
     /**
@@ -93,7 +86,7 @@ final class AssetConfig
      */
     public function getTransactionModel(): string
     {
-        return $this->transactionModel;
+        return $this->modelConfig->getTransactionModel();
     }
 
     /**
@@ -103,7 +96,7 @@ final class AssetConfig
      */
     public function getTransferModel(): string
     {
-        return $this->transferModel;
+        return $this->modelConfig->getTransferModel();
     }
 
     /**
@@ -168,14 +161,22 @@ final class AssetConfig
             }
         }
 
+        $tableConfig = TableConfiguration::fromArray([
+            'wallet_table' => $config['wallet_table'],
+            'transaction_table' => $config['transaction_table'],
+            'transfer_table' => $config['transfer_table'],
+        ]);
+
+        $modelConfig = ModelConfiguration::fromArray([
+            'wallet_model' => $config['wallet_model'],
+            'transaction_model' => $config['transaction_model'],
+            'transfer_model' => $config['transfer_model'],
+        ]);
+
         return new self(
             assetType: $assetType,
-            walletTable: $config['wallet_table'],
-            transactionTable: $config['transaction_table'],
-            transferTable: $config['transfer_table'],
-            walletModel: $config['wallet_model'],
-            transactionModel: $config['transaction_model'],
-            transferModel: $config['transfer_model'],
+            tableConfig: $tableConfig,
+            modelConfig: $modelConfig,
             migrationPath: $config['migration_path'] ?? null,
             meta: $config['meta'] ?? []
         );
@@ -188,16 +189,14 @@ final class AssetConfig
      */
     public function toArray(): array
     {
-        return [
-            'wallet_table' => $this->walletTable,
-            'transaction_table' => $this->transactionTable,
-            'transfer_table' => $this->transferTable,
-            'wallet_model' => $this->walletModel,
-            'transaction_model' => $this->transactionModel,
-            'transfer_model' => $this->transferModel,
-            'migration_path' => $this->migrationPath,
-            'meta' => $this->meta,
-        ];
+        return array_merge(
+            $this->tableConfig->toArray(),
+            $this->modelConfig->toArray(),
+            [
+                'migration_path' => $this->migrationPath,
+                'meta' => $this->meta,
+            ]
+        );
     }
 
     /**
@@ -220,12 +219,7 @@ final class AssetConfig
      */
     public function getTableByType(string $type): string
     {
-        return match ($type) {
-            'wallet' => $this->walletTable,
-            'transaction' => $this->transactionTable,
-            'transfer' => $this->transferTable,
-            default => throw new \InvalidArgumentException("Invalid table type: {$type}"),
-        };
+        return $this->tableConfig->getTableByType($type);
     }
 
     /**
@@ -238,11 +232,6 @@ final class AssetConfig
      */
     public function getModelByType(string $type): string
     {
-        return match ($type) {
-            'wallet' => $this->walletModel,
-            'transaction' => $this->transactionModel,
-            'transfer' => $this->transferModel,
-            default => throw new \InvalidArgumentException("Invalid model type: {$type}"),
-        };
+        return $this->modelConfig->getModelByType($type);
     }
 }

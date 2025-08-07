@@ -168,15 +168,14 @@ final class AssetTypeDetectorTest extends TestCase
     public function testDetectWithFallbackToDefault(): void
     {
         // Set default asset type
-        $defaultConfig = new AssetConfig(
-            assetType: 'default',
-            walletTable: 'wallets',
-            transactionTable: 'transactions',
-            transferTable: 'transfers',
-            walletModel: 'Bavix\Wallet\Models\Wallet',
-            transactionModel: 'Bavix\Wallet\Models\Transaction',
-            transferModel: 'Bavix\Wallet\Models\Transfer'
-        );
+        $defaultConfig = AssetConfig::fromArray('default', [
+            'wallet_table' => 'wallets',
+            'transaction_table' => 'transactions',
+            'transfer_table' => 'transfers',
+            'wallet_model' => 'Bavix\Wallet\Models\Wallet',
+            'transaction_model' => 'Bavix\Wallet\Models\Transaction',
+            'transfer_model' => 'Bavix\Wallet\Models\Transfer'
+        ]);
         $this->registry->setDefault($defaultConfig);
 
         // Create mock wallet that doesn't match any registered asset type
