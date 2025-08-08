@@ -19,7 +19,7 @@ use Bavix\Wallet\Models\Wallet as WalletModel;
 /**
  * @internal
  */
-final readonly class PrepareService implements PrepareServiceInterface
+readonly class PrepareService implements PrepareServiceInterface
 {
     public function __construct(
         private TransferLazyDtoAssemblerInterface $transferLazyDtoAssembler,

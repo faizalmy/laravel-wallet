@@ -43,6 +43,7 @@ use Bavix\Wallet\Internal\Repository\TransferRepository;
 use Bavix\Wallet\Internal\Repository\TransferRepositoryInterface;
 use Bavix\Wallet\Internal\Repository\WalletRepository;
 use Bavix\Wallet\Internal\Repository\WalletRepositoryInterface;
+use Bavix\Wallet\Internal\Service\ModelResolverInterface;
 use Bavix\Wallet\Internal\Service\ClockService;
 use Bavix\Wallet\Internal\Service\ClockServiceInterface;
 use Bavix\Wallet\Internal\Service\ConnectionService;
@@ -214,12 +215,34 @@ final class WalletServiceProvider extends ServiceProvider implements DeferrableP
     {
         $this->app->singleton(
             TransactionRepositoryInterface::class,
-            $configure['transaction'] ?? TransactionRepository::class
+            function ($app) use ($configure) {
+                $resolver = $app->bound(ModelResolverInterface::class) 
+                    ? $app->make(ModelResolverInterface::class) 
+                    : null;
+                
+                return new ($configure['transaction'] ?? TransactionRepository::class)(
+                    $app->make(TransactionDtoTransformerInterface::class),
+                    $app->make(JsonServiceInterface::class),
+                    $app->make(Transaction::class),
+                    $resolver
+                );
+            }
         );
 
         $this->app->singleton(
             TransferRepositoryInterface::class,
-            $configure['transfer'] ?? TransferRepository::class
+            function ($app) use ($configure) {
+                $resolver = $app->bound(ModelResolverInterface::class) 
+                    ? $app->make(ModelResolverInterface::class) 
+                    : null;
+                
+                return new ($configure['transfer'] ?? TransferRepository::class)(
+                    $app->make(TransferDtoTransformerInterface::class),
+                    $app->make(JsonServiceInterface::class),
+                    $app->make(Transfer::class),
+                    $resolver
+                );
+            }
         );
 
         $this->app->singleton(WalletRepositoryInterface::class, $configure['wallet'] ?? WalletRepository::class);
